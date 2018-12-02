@@ -1,0 +1,139 @@
+---
+author: "Ryan Christensen"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Load and Tidy the shot data
+```{r message=FALSE}
+library(tidyverse)
+library(plotly)
+
+theme_set(theme_minimal())
+
+shot_data <- readxl::read_excel("Sample Player Test Data.xlsx")
+
+shot_data <- shot_data %>% 
+  mutate_at(c("Player", "Club"), factor) 
+```
+
+```{r eval=FALSE, echo=FALSE}
+glimpse(shot_data)
+```
+
+Making an assumption that the goal of any club test is to find better accuracy, more distance, or some combination of both. I'm choosing to start by looking at accuracy.  
+
+## Average distance offline for each club
+
+```{r}
+shot_data %>% 
+  select(Player, Club, `Actual Offline`) %>%
+  group_by(Club) %>% 
+  summarise(Avg_Miss = mean(`Actual Offline`, na.rm = TRUE))
+```
+
+Looks like there might be one club that is much closer to the target than the other. Next I want to see what the distribution of this offline data looks like.  
+
+```{r}
+pl <- ggplot(shot_data, aes(`Actual Offline`)) +
+  geom_density() +
+  geom_vline(xintercept = mean(shot_data$`Actual Offline`), color = 'red', alpha = 0.34) +
+  scale_x_continuous(limits = c(-70, 70))
+
+ggplotly(pl)
+```
+
+Looks more or less normal which means that I can use a T-Test to verify what the simple means above are hinting at. First I'll verify that the distribution is normal using a `Shapiro-Wilk` test.  
+
+```{r}
+shapiro.test(shot_data$`Actual Offline`)
+```
+
+## T-Test: 
+
+```{r}
+t_test <- t.test(shot_data$`Actual Offline`~shot_data$Club)
+t_test
+```
+
+Cool, so it looks like Club B is deffinitly endining up closer to the target on average for most of the participants. I like to see results like this visually so I will now make a couple visuals to help enforce this result.  
+
+## Boxplot showing the range of the actual offline shot for each club
+
+```{r}
+p <- shot_data %>% 
+  group_by(Player, Club) %>% 
+  summarise(Avg_Miss = mean(`Actual Offline`)) %>% 
+  ungroup() %>% 
+  ggplot(aes(Club, Avg_Miss, col = Club)) + 
+    geom_boxplot() +
+    coord_flip()
+
+ggplotly(p)
+```
+
+## Plot of the average offline total per each player
+
+```{r warning=FALSE}
+offline <- shot_data %>% 
+  group_by(Player, Club) %>% 
+  summarise(Avg_Miss = mean(`Actual Offline`)) %>% 
+  ungroup()
+
+plot <- ggplot(offline, aes(Club, Avg_Miss, group = Player)) +
+    geom_point(aes(text = paste("Avg Miss: ", Avg_Miss, ", Player: ", Player), color = Player, size = 3, alpha = 0.5)) +
+    geom_line(aes(color = Player, alpha = 0.5)) +
+    coord_flip() +
+    theme(legend.position = "none")
+
+ggplotly(plot, tooltip = c("text"))
+```
+
+Pretty clear that Club B is biasing shots more left than Club A. There could be some left handed players which might explain some of the players being going farther right than they started. I want to see if there was any affect on the top ten players with the biggest accuracy gains as far as distance is concerned.     
+
+```{r}
+diff_df <- shot_data %>% 
+  group_by(Player, Club) %>% 
+  summarise(Avg_Miss = mean(`Actual Offline`)) %>% 
+  spread(Club, Avg_Miss) %>% 
+  mutate(Diff_Miss = `Club A` - `Club B`) %>% 
+  arrange(desc(abs(Diff_Miss)))
+
+dva <- shot_data %>% 
+  right_join(diff_df) %>% 
+  select(Player, Club, `Actual Carry`, Diff_Miss) %>% 
+  group_by(Player, Club, Diff_Miss) %>% 
+  summarise(Avg_carry = mean(`Actual Carry`)) %>% 
+  spread(Club, Avg_carry) %>% 
+  mutate(Diff_Carry = `Club A` - `Club B`) %>% 
+  select(Player, Diff_Miss, Diff_Carry) %>% 
+  arrange(desc(abs(Diff_Carry)))
+```
+
+Interestingly it seems that the players with the biggest accuracy gains had the smallest change in carry yards in the group.  
+
+```{r}
+ggplot(dva, aes(Diff_Miss, Diff_Carry)) +
+  geom_point(aes(col = Player, size = 3, alpha = 0.34)) + 
+  geom_smooth(method = lm, color = "FireBrick") +
+  theme(legend.position = 'none')
+```
+
+A quick plot shows a general downward trend suggesting that there is a negative correlation in this case between accuracy gained and distance delta. However the confidence interval surrounding the line is massive, so I'm not sure I could make a definative statement here. What does seem to be clear is that Club B averages about 7 yards closer to the target than Club A. 
+
+```{r eval=FALSE}
+
+shot_data %>% 
+  filter(Player %in% c("Player 4", "Player 12", "Player 14", "Player 16")) %>% 
+  select(Player, Club, `Ball Speed`, `Vertical Launch`, `Horizontal Launch`, `Actual Carry`, `Spin Rate`, `Spin Axis`) %>% 
+  group_by(Player, Club) %>% 
+  summarise(Avg_Carry = mean(`Actual Carry`), Avg_HL = mean(`Horizontal Launch`), Avg_SA = mean(`Spin Axis`))
+```
+
+
+
+
