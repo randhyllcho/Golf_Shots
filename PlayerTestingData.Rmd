@@ -25,7 +25,7 @@ shot_data <- shot_data %>%
 glimpse(shot_data)
 ```
 
-Making an assumption that the goal of any club test is to find better accuracy, more distance, or some combination of both. I'm choosing to start by looking at accuracy.  
+Assuming that the goal of any club test is to find better accuracy, more distance, or some combination of both. I'm choosing to start by looking at accuracy.      
 
 ## Average distance offline for each club
 
@@ -36,7 +36,7 @@ shot_data %>%
   summarise(Avg_Miss = mean(`Actual Offline`, na.rm = TRUE))
 ```
 
-Looks like there might be one club that is much closer to the target than the other. Next I want to see what the distribution of this offline data looks like.  
+It looks like there might be one club that is much closer to the target than the other. Next, I want to see what the distribution of this offline data looks like.    
 
 ```{r}
 pl <- ggplot(shot_data, aes(`Actual Offline`)) +
@@ -47,7 +47,7 @@ pl <- ggplot(shot_data, aes(`Actual Offline`)) +
 ggplotly(pl)
 ```
 
-Looks more or less normal which means that I can use a T-Test to verify what the simple means above are hinting at. First I'll verify that the distribution is normal using a `Shapiro-Wilk` test.  
+Looks more or less normal which means that I can use a T-Test to verify what the simple means above are hinting at. First I'll check that the distribution is normal using a `Shapiro-Wilk` test.  
 
 ```{r}
 shapiro.test(shot_data$`Actual Offline`)
@@ -60,7 +60,7 @@ t_test <- t.test(shot_data$`Actual Offline`~shot_data$Club)
 t_test
 ```
 
-Cool, so it looks like Club B is deffinitly endining up closer to the target on average for most of the participants. I like to see results like this visually so I will now make a couple visuals to help enforce this result.  
+Cool, so it looks like Club B is up closer to the target on average for most of the participants. I like to see results like this visually so I will now make a couple of visuals to help enforce this result.    
 
 ## Boxplot showing the range of the actual offline shot for each club
 
@@ -93,7 +93,7 @@ plot <- ggplot(offline, aes(Club, Avg_Miss, group = Player)) +
 ggplotly(plot, tooltip = c("text"))
 ```
 
-Pretty clear that Club B is biasing shots more left than Club A. There could be some left handed players which might explain some of the players being going farther right than they started. I want to see if there was any affect on the top ten players with the biggest accuracy gains as far as distance is concerned.     
+Pretty clear that Club B is biasing shots more left than Club A. There could be some left-handed players which might explain some of the players going farther right than they started. I want to see if there was any effect on the top ten players with the most significant accuracy gains as far as distance is concerned.         
 
 ```{r}
 diff_df <- shot_data %>% 
@@ -114,7 +114,7 @@ dva <- shot_data %>%
   arrange(desc(abs(Diff_Carry)))
 ```
 
-Interestingly it seems that the players with the biggest accuracy gains had the smallest change in carry yards in the group.  
+Interestingly it seems that the players with the biggest accuracy gains had the smallest change in carry yards in the group.     
 
 ```{r}
 ggplot(dva, aes(Diff_Miss, Diff_Carry)) +
@@ -123,7 +123,7 @@ ggplot(dva, aes(Diff_Miss, Diff_Carry)) +
   theme(legend.position = 'none')
 ```
 
-A quick plot shows a general downward trend suggesting that there is a negative correlation in this case between accuracy gained and distance delta. However the confidence interval surrounding the line is massive, so I'm not sure I could make a definative statement here. What does seem to be clear is that Club B averages about 7 yards closer to the target than Club A. 
+A quick plot shows a general downward trend suggesting that there is a negative correlation in this case between accuracy gained and distance delta. However the confidence interval surrounding the line is massive, so I'm not sure I could make a definitive statement here. What does seem to be clear is that Club B averages about 7 yards closer to the target than Club A.   
 
 ```{r eval=FALSE}
 
