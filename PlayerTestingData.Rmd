@@ -125,7 +125,7 @@ ggplot(dva, aes(Diff_Miss, Diff_Carry)) +
 
 A quick plot shows a general downward trend suggesting that there is a negative correlation in this case between accuracy gained and distance delta. However the confidence interval surrounding the line is massive, so I'm not sure I could make a definitive statement here. What does seem to be clear is that Club B averages about 7 yards closer to the target than Club A.   
 
-```{r eval=FALSE}
+```{r eval=FALSE, echo=FALSE}
 
 shot_data %>% 
   filter(Player %in% c("Player 4", "Player 12", "Player 14", "Player 16")) %>% 
